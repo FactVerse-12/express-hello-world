@@ -2,7 +2,7 @@ name: auto-post
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 4 * * *' # roz subah 9:30 IST auto chalega
+    - cron: '0 4 * * *' # roz subah 9:30 IST
 
 jobs:
   post:
@@ -12,7 +12,7 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-      - run: pip install gtts requests
+      - run: pip install -r requirements.txt
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - run: python main.py
         env:
@@ -21,7 +21,7 @@ jobs:
       - name: Save memory for infinite loop
         run: |
           git config user.name "factory-bot"
-          git config user.email "bot@storytoons.com"
+          git config user.email "bot@story.com"
           git add used_topics.json
           git commit -m "memory ${{ github.run_number }}" || true
           git push || true
