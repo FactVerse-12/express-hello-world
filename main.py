@@ -42,7 +42,12 @@ def make_video(img_path, audio_path):
     audio = AudioFileClip(audio_path)
     clip = ImageClip(img_path).set_duration(audio.duration + 0.5)
     clip = clip.set_audio(audio)
-    clip = clip.resize((1080, 1920))
+   def make_video(img_path, audio_path):
+    audio = AudioFileClip(audio_path)
+    clip = ImageClip(img_path).set_duration(audio.duration + 0.5)
+    clip = clip.set_audio(audio)
+    clip.write_videofile("final.mp4", fps=24, codec='libx264', audio_codec='aac')
+    return "final.mp4" 
     clip.write_videofile("final.mp4", fps=24, codec='libx264', audio_codec='aac')
     return "final.mp4"
 
