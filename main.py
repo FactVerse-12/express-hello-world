@@ -1,66 +1,67 @@
-import os, random, requests, subprocess, json, time
+import os, requests, time, random, json, textwrap
 from gtts import gTTS
-print("=== INFINITE FACTORY FIXED ===")
-GENRES=["Horror","Funny","Love","Moral","Greed","Friendship","Betrayal","Mystery"]
-CHARACTERS=["Sher","Chuha","Bandar","Billi","Hathi","Kauwa","Gadha","Tota","Bhoot","Chudail","Raja","Kisan","Baccha","Dadi","Jadugar","Pari","Rakshas","Maina","Kutta"]
-PLACES=["Haveli","Jungle","School","Gaon","Sheher","Kuan","Peepal","Hospital","Lift","Chhat","Nadi","Pahad","Khet","Bazaar","Samundar","Gufa"]
-TWISTS=["jadui khazana mila","raat ko aawaz aayi","dost ne dhokha diya","sab hasne lage","ek raaz khula","ladai ho gayi","madad karni padi","sapna sach hua"]
-MORALS=["Lalach buri bala hai","Mehnat ka fal meetha hota hai","Sache dost ki kadar karo","Ekta me bal hai","Sach me hi jeet hai","Gussa sab kharab karta hai","Samay sabse keemti hai","Maa se badhkar koi nahi","Madad karna punya hai","Jhooth ki umar choti hoti hai"]
-used_file="used_topics.json"
-used=[]
-if os.path.exists(used_file):
-    try: used=json.loads(open(used_file).read())
-    except: used=[]
-def make_topic():
-    for _ in range(1000):
-        g=random.choice(GENRES);c1=random.choice(CHARACTERS);c2=random.choice(CHARACTERS);p=random.choice(PLACES);t=random.choice(TWISTS);m=random.choice(MORALS)
-        if c1==c2: continue
-        name=f"{g} - {c1} aur {c2} ka {t} {p} me"
-        if name not in used:
-            prompt=f"{g} story {c1} and {c2} in {p} {t} pixar 3d cartoon"
-            story=f"{p} me {c1} aur {c2} rehte the. Ek din {t}, sab badal gaya."
-            return {"t":name,"p":prompt,"m":m,"s":story}
-    return {"t":"Moral - Kisan aur Sher Khet me","p":"farmer lion cartoon","m":"Mehnat ka fal meetha","s":"Khet me kisan aur sher dost ban gaye"}
-sel=make_topic()
-used.append(sel['t'])
-open(used_file,'w').write(json.dumps(used[-1000:]))
-print(f"TOPIC: {sel['t']}")
-print(f"TOTAL USED: {len(used)}")
-text=f"{sel['s']} Is kahani se seekh milti hai ki {sel['m']}."
-gTTS(text=text, lang='hi', slow=False).save("voice.mp3")
-print("Voice OK")
-img_url="https://image.pollinations.ai/prompt/"+requests.utils.quote(sel['p'])+f"?width=1080&height=1920&nologo=true&seed={random.randint(1,999999)}"
-for i in range(5):
+from PIL import Image, ImageDraw, ImageFont
+from moviepy.editor import ImageClip, AudioFileClip, CompositeVideoClip, TextClip
+
+# --- SECRETS FROM GITHUB ---
+INSTA_ID = os.getenv("INSTA_ID")
+TOKEN = os.getenv("INSTA_TOKEN")
+
+def log(m): print(m, flush=True)
+
+TOPICS = [
+    "Chuha aur Bandar ki dosti - Bandar ne chuhe ka lunch kha liya, phir kya hua?",
+    "School me jhooth - Chuha exam me fail ho gaya par sabko topper bola",
+    "Madad ka matlab - Bandar musibat me tha, chuhe ne help ki par badle me dhokha mila"
+]
+
+def generate_story():
+    return random.choice(TOPICS)
+
+def make_voice(text, file="voice.mp3"):
+    tts = gTTS(text=text, lang='hi', slow=False)
+    tts.save(file)
+    return file
+
+def make_cartoon_image(text, file="frame.jpg"):
+    # Simple cartoon style frame with text
+    img = Image.new('RGB', (1080, 1920), color=(255, 245, 200))
+    draw = ImageDraw.Draw(img)
+    # Draw simple cartoon characters (placeholder)
+    draw.ellipse((200, 400, 880, 1100), fill=(255, 220, 150), outline="black", width=8)
+    draw.ellipse((300, 600, 500, 800), fill="white", outline="black", width=5)
+    draw.ellipse((580, 600, 780, 800), fill="white", outline="black", width=5)
+    
+    # Add story text
+    wrapped = textwrap.wrap(text, width=28)
+    y = 1250
+    for line in wrapped[:8]:
+        draw.text((80, y), line, fill="black", font=ImageFont.load_default(), stroke_width=2)
+        y+=55
+    img.save(file)
+    return file
+
+def make_video(image_path, audio_path, out="final.mp4"):
+    audio = AudioFileClip(audio_path)
+    clip = ImageClip(image_path).set_duration(audio.duration + 0.5)
+    clip = clip.set_audio(audio)
+    clip = clip.resize((1080, 1920))
+    clip.write_videofile(out, fps=24, codec='libx264', audio_codec='aac')
+    return out
+
+def upload_video(file_path):
+    log(f"Uploading {file_path}...")
     try:
-        r=requests.get(img_url, timeout=40)
-        open('img.jpg','wb').write(r.content)
-        if os.path.getsize('img.jpg')>8000: break
-    except: time.sleep(2)
-print("Image OK")
-cmd='ffmpeg -y -loop 1 -i img.jpg -i voice.mp3 -c:v libx264 -c:a aac -shortest -t 30 -pix_fmt yuv420p -vf "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920" final.mp4'
-subprocess.run(cmd, shell=True)
-print("VIDEO READY")
-token=os.getenv("INSTA_TOKEN")
-ig_id=os.getenv("INSTA_ID")
-if not token or not ig_id:
-    print("No token")
-    exit(0)
-# FIXED UPLOADER - tmpfiles.org
-with open('final.mp4','rb') as f:
-    r=requests.post("https://tmpfiles.org/api/v1/upload", files={"file": f}, timeout=60)
-    print(f"UPLOAD RESP: {r.text[:200]}")
+        with open(file_path, 'rb') as f:
+            r = requests.post("https://catbox.moe/user/api.php", 
+            data={"reqtype": "fileupload"}, 
+            files={"fileToUpload": f}, timeout=120)
+        if r.status_code == 200 and "https://" in r.text:
+            url = r.text.strip()
+            log(f"Catbox URL: {url}")
+            return url
+    except Exception as e:
+        log(f"Catbox fail: {e}")
+    # fallback
     try:
-        vurl=r.json()['data']['url'].replace("tmpfiles.org/","tmpfiles.org/dl/")
-    except:
-        vurl=r.json().get('data',{}).get('url','')
-        vurl=vurl.replace("tmpfiles.org/","tmpfiles.org/dl/")
-print(f"URL {vurl}")
-b="https://graph.facebook.com/v19.0"
-cap=f"{sel['t']}\n\n{sel['s']}\n\nSeekh: {sel['m']}\n\n#hindikahani #moralstory #storytoons"
-r=requests.post(f"{b}/{ig_id}/media", data={"video_url":vurl,"caption":cap,"media_type":"REELS","access_token":token})
-print(f"CREATE: {r.text}")
-jid=r.json().get('id')
-if not jid: exit(0)
-time.sleep(35)
-pub=requests.post(f"{b}/{ig_id}/media_publish", data={"creation_id":jid,"access_token":token})
-print(f"PUBLISHED: {pub.text}")
+       
