@@ -1,34 +1,95 @@
 import os, random, requests, subprocess, json, time
 from gtts import gTTS
 
-print("StoryToons Factory Started...")
+print("=== INFINITE STORYTOONS FACTORY ===")
 
-# ===== 50 VIRAL TOPICS - HAR VIDEO ALAG =====
-ALL_TOPICS = [
-  {"t":"Horror - Bhootiya Haveli", "p":"haunted mansion night ghost girl pixar 3d", "m":"Lalach buri bala hai", "s":"Ek ladka purani haveli me khazana dhoondhne gaya, wahan usse ek roti hui ladki mili. Ladki ne kaha ye haveli shraapit hai. Ladke ne lalach nahi kiya aur wapas aa gaya."},
-  {"t":"Love - Maa Ka Pyaar", "p":"indian mother child emotional love pixar", "m":"Maa se badhkar koi nahi", "s":"Chota Raju bimar tha, maa raat bhar jaag kar uski seva karti rahi. Subah Raju theek ho gaya."},
-  {"t":"Funny - Alsi Gadha", "p":"lazy donkey funny sleeping comedy pixar", "m":"Mehnat ka fal meetha hota hai", "s":"Ek gadha din bhar sota tha, baaki janwar kaam karte the. Jab mela aaya toh sabke paas paise the, gadhe ke paas kuch nahi."},
-  {"t":"Betrayal - Dhokebaaz Dost", "p":"two best friends betrayal sad cartoon", "m":"Sache dost ki kadar karo", "s":"Rohan ne apne dost ka secret dusron ko bata diya, dost ne baat karna band kar diya."},
-  {"t":"Greed - Jadui Ped", "p":"magical tree gold coins greed cartoon", "m":"Jyada lalach sab khatam kar deta hai", "s":"Ek kisan ko jadui ped mila jo roz ek sone ka sikka deta tha, usne pura ped kaat diya."},
-  {"t":"Horror - Raat Ka Auto", "p":"auto rickshaw midnight horror road cartoon", "m":"Anjaan logon se bacho", "s":"Raat 2 baje ek ladki ko khali auto mila, driver ka chehra nahi tha."},
-  {"t":"Friendship - Sher Aur Chuha", "p":"lion and mouse friendship jungle cartoon", "m":"Chota dost bhi kaam aata hai", "s":"Sher ne chuhe ko chhod diya, baad me chuhe ne jaal kaat kar sher ko bachaya."},
-  {"t":"Funny - Bandar Ka School", "p":"monkeys in classroom funny cartoon", "m":"Nakal karna buri baat", "s":"Bandar ne topper ki nakal ki, teacher ne pakad liya."},
-  {"t":"Love - Behen Ka Pyar", "p":"brother sister rakhi emotional cartoon", "m":"Rishte anmol hote hain", "s":"Bhai videsh chala gaya, behen ne har saal rakhi bheji."},
-  {"t":"Horror - Khali School", "p":"abandoned school ghost child horror cartoon", "m":"Jhooth bolne se dar lagta hai", "s":"Bacche ne jhooth bola ki school me bhoot hai, raat ko sach me bhoot aa gaya."},
-  {"t":"Greed - Sone Ka Anda", "p":"hen golden egg greed cartoon", "m":"Sabr ka fal meetha hota hai", "s":"Ek murgi sone ka anda deti thi, malik ne lalach me use kaat diya."},
-  {"t":"Funny - Hathi Ka Dance", "p":"elephant dancing funny cartoon", "m":"Hasna sehat ke liye accha hai", "s":"Hathi ne dance kiya, sab hasne lage, jungle me khushi aa gayi."},
-  {"t":"Moral - Jhootha Kauwa", "p":"crow lying story cartoon", "m":"Jhooth ki umar choti hoti hai", "s":"Kauwe ne jhooth bola ki ped pe bhoot hai, koi uski baat nahi maanta tha."},
-  {"t":"Love - Papa Ka Sapna", "p":"father son dream emotional cartoon", "m":"Mehnat se sapne pure hote hain", "s":"Papa ne bete ke liye cycle ka sapna dekha, din raat mehnat ki."},
-  {"t":"Horror - Kuan Ka Paani", "p":"well water horror ghost cartoon night", "m":"Bina soche kaam mat karo", "s":"Gaon ke kuan se raat ko awaze aati thi, ek ladke ne jhaank kar dekha."},
-  {"t":"Friendship - Tota Maina", "p":"parrot friendship cartoon jungle", "m":"Dosti me madad karni chahiye", "s":"Tota bimar tha, Maina ne uske liye dawa laayi."},
-  {"t":"Greed - Do Billi", "p":"two cats fighting fish cartoon", "m":"Ladai se nuksaan hota hai", "s":"Do billi machli ke liye lad rahi thi, bandar ne machli kha li."},
-  {"t":"Funny - Sher Ka Haircut", "p":"lion barber shop funny cartoon", "m":"Ghamand accha nahi", "s":"Sher ne naya haircut karwaya, sab us par hasne lage."},
-  {"t":"Horror - Jungle Ki Chudail", "p":"witch jungle horror cartoon night", "m":"Himmat se dar bhagta hai", "s":"Chudail jungle me rehti thi, ek bacche ne himmat dikhayi."},
-  {"t":"Moral - Mehnati Kisan", "p":"farmer working field cartoon", "m":"Mehnat kabhi bekar nahi jaati", "s":"Kisan ne sukhe khet me bhi mehnat ki, baarish hui aur fasal ug gayi."},
-  {"t":"Love - Dost Ki Shaadi", "p":"friends wedding emotional cartoon", "m":"Dost hi parivar hote hain", "s":"Dost ki shaadi me sabne madad ki."},
-  {"t":"Funny - Gadhe Ki Topi", "p":"donkey wearing hat funny cartoon", "m":"Dusron par haso mat", "s":"Gadhe ne topi pehni, sab hase, fir gadha raja ban gaya."},
-  {"t":"Horror - Lift Ka Bhoot", "p":"elevator ghost horror cartoon", "m":"Akele lift me mat jao raat ko", "s":"Building ki lift raat ko khud chalti thi."},
-  {"t":"Moral - Pipal Ka Ped", "p":"big banyan tree village cartoon", "m":"Ped lagana punya hai", "s":"Buzurg ne ped lagaya, gaon ko chhaya mili."},
-  {"t":"Greed - Chor Ka Anjaam", "p":"thief stealing cartoon village", "m":"Chori kabhi chupti nahi", "s":"Chor ne chori ki, CCTV me pakda gaya."},
-  {"t":"Friendship - Machli Aur Mendhak", "p":"fish frog friendship cartoon pond", "m":"Alag hoke bhi dost bana ja sakta hai", "s":"Machli aur mendhak dost ban gaye."},
-  {"t":"Horror - Purana Radio
+# ===== INFINITE GENERATOR DATA =====
+GENRES = ["Horror", "Funny", "Love", "Moral", "Greed", "Friendship", "Betrayal", "Mystery"]
+CHARACTERS = ["Sher", "Chuha", "Bandar", "Billi", "Hathi", "Kauwa", "Gadha", "Tota", "Bhoot", "Chudail", "Raja", "Kisan", "Baccha", "Dadi", "Jadugar", "Pari", "Rakshas", "Maina", "Kutta"]
+PLACES = ["Haveli", "Jungle", "School", "Gaon", "Sheher", "Kuan", "Peepal", "Hospital", "Lift", "Chhat", "Nadi", "Pahad", "Khet", "Bazaar", "Samundar", "Gufa"]
+TWISTS = ["jadui khazana mila", "raat ko aawaz aayi", "dost ne dhokha diya", "sab hasne lage", "ek raaz khula", "ladai ho gayi", "madad karni padi", "sapna sach hua"]
+MORALS = ["Lalach buri bala hai", "Mehnat ka fal meetha hota hai", "Sache dost ki kadar karo", "Ekta me bal hai", "Sach me hi jeet hai", "Gussa sab kharab karta hai", "Samay sabse keemti hai", "Maa se badhkar koi nahi", "Madad karna punya hai", "Jhooth ki umar choti hoti hai", "Santosh sabse bada dhan hai", "Himmat se dar bhagta hai"]
+
+used_file = "used_topics.json"
+used = []
+if os.path.exists(used_file):
+    try: used = json.loads(open(used_file).read())
+    except: used = []
+
+def make_unique_topic():
+    for _ in range(1000): # 1000 baar try karega unique banane ke liye
+        g = random.choice(GENRES)
+        c1 = random.choice(CHARACTERS)
+        c2 = random.choice(CHARACTERS)
+        p = random.choice(PLACES)
+        t = random.choice(TWISTS)
+        m = random.choice(MORALS)
+        if c1 == c2: continue
+        topic_name = f"{g} - {c1} aur {c2} ka {t} {p} me"
+        if topic_name not in used:
+            prompt = f"{g} story {c1} and {c2} in {p}, {t}, pixar 3d cartoon style, vibrant, 8k"
+            story = f"{p} me {c1} aur {c2} rehte the. Ek din {t}, aur sab kuch badal gaya. {c1} ne {c2} ki madad ki. Ant me sab samajh gaye."
+            return {"t": topic_name, "p": prompt, "m": m, "s": story}
+    return None
+
+selected = make_unique_topic()
+used.append(selected['t'])
+open(used_file,'w').write(json.dumps(used[-1000:])) # Last 1000 yaad rakhega, kabhi repeat nahi
+
+print(f"TOPIC: {selected['t']}")
+print(f"MORAL: {selected['m']}")
+print(f"Used Total: {len(used)}")
+
+# ===== VOICE =====
+full_text = f"{selected['s']} Is kahani se hume ye seekh milti hai ki {selected['m']}."
+tts = gTTS(text=full_text, lang='hi', slow=False)
+tts.save("voice.mp3")
+print("Voice OK")
+
+# ===== IMAGE - HAR TOPIC KA ALAG =====
+img_url = f"https://image.pollinations.ai/prompt/{requests.utils.quote(selected['p'])}?width=1080&height=1920&nologo=true&seed={random.randint(1,999999)}"
+for i in range(5):
+    try:
+        r = requests.get(img_url, timeout=40)
+        open('img.jpg','wb').write(r.content)
+        if os.path.getsize('img.jpg') > 8000:
+            break
+    except:
+        time.sleep(2)
+print("Image OK")
+
+# ===== VIDEO =====
+# Background music try
+has_bg = False
+try:
+    r = requests.get("https://cdn.pixabay.com/download/audio/2022/02/10/audio_c8c8a65064.mp3?filename=lofi-study-112191.mp3", timeout=15)
+    open('bg.mp3','wb').write(r.content)
+    if os.path.getsize('bg.mp3') > 10000: has_bg = True
+except: has_bg = False
+
+if has_bg:
+    cmd = 'ffmpeg -y -loop 1 -i img.jpg -i voice.mp3 -i bg.mp3 -filter_complex "[1:a]volume=1.0[a1];[2:a]volume=0.12[a2];[a1][a2]amix=inputs=2:duration=longest:dropout_transition=0[a]" -map 0:v -map "[a]" -c:v libx264 -c:a aac -shortest -t 30 -pix_fmt yuv420p -vf "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920" final.mp4'
+else:
+    cmd = 'ffmpeg -y -loop 1 -i img.jpg -i voice.mp3 -c:v libx264 -c:a aac -shortest -t 30 -pix_fmt yuv420p -vf "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920" final.mp4'
+
+subprocess.run(cmd, shell=True)
+print("FINAL VIDEO READY")
+
+# ===== POST TO INSTA =====
+token = os.getenv("INSTA_TOKEN")
+ig_id = os.getenv("INSTA_ID")
+print(f"Token: {'YES' if token else 'NO'}")
+
+if not token or not ig_id:
+    print("TOKEN nahi, only video banayi")
+    exit(0)
+
+# Upload
+with open('final.mp4','rb') as f:
+    r = requests.post("https://catbox.moe/user/api.php", data={"reqtype":"fileupload"}, files={"fileToUpload": f}, timeout=60)
+    video_url = r.text.strip()
+print(f"URL: {video_url}")
+
+# Create Container
+cap = f"{selected['t']}\n\n{selected['s']}\n\n✨ Seekh: {selected['m']}\n\n#hindikahani #moralstory #storytoons #viralstory #cartoonkahani"
+url = f"https://graph.facebook.com/v19.
