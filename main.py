@@ -1,6 +1,6 @@
 import os, requests, time, random, textwrap
 from gtts import gTTS
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 from moviepy.editor import ImageClip, AudioFileClip
 
 INSTA_ID = os.getenv("INSTA_ID")
@@ -11,53 +11,29 @@ def log(m): print(m, flush=True)
 TOPIC = "Chuha aur Bandar - Ek sachi dosti ki kahani"
 
 def upload_video(path):
-    # 1. Try transfer.sh
+    # Catbox - sabse reliable direct link deta hai
+    try:
+        log("Uploading to catbox.moe...")
+        with open(path, 'rb') as f:
+            r = requests.post(
+                "https://catbox.moe/user/api.php",
+                data={"reqtype": "fileupload"},
+                files={"fileToUpload": f},
+                timeout=90
+            )
+            log(f"catbox: {r.text[:200]}")
+            if "https://" in r.text and ".mp4" in r.text:
+                return r.text.strip()
+    except Exception as e: log(f"catbox fail {e}")
+
+    # Fallback - transfer.sh
     try:
         log("Trying transfer.sh...")
         with open(path, 'rb') as f:
             r = requests.put(f"https://transfer.sh/{os.path.basename(path)}", data=f, timeout=60)
-            log(f"transfer: {r.text[:200]}")
             if "https://" in r.text:
                 return r.text.strip()
     except Exception as e: log(f"transfer fail {e}")
-
-    # 2. Try tmpfiles.org
-    try:
-        log("Trying tmpfiles.org...")
-        with open(path, 'rb') as f:
-            r = requests.post("https://tmpfiles.org/api/v1/upload", files={"file": f}, timeout=60)
-            log(f"tmpfiles: {r.text[:300]}")
-            j = r.json()
-            if j.get("status")=="success":
-                url = j["data"]["url"].replace("tmpfiles.org/dl/", "tmpfiles.org/dl/")
-                # make direct link
-                return url
-    except Exception as e: log(f"tmpfiles fail {e}")
-
-    # 3. Try file.io
-    try:
-        log("Trying file.io...")
-        with open(path, 'rb') as f:
-            r = requests.post("https://file.io", files={"file": f}, timeout=60)
-            log(f"file.io: {r.text[:300]}")
-            j = r.json()
-            if j.get("success"):
-                return j.get("link")
-    except Exception as e: log(f"file.io fail {e}")
-
-    # 4. Try gofile.io
-    try:
-        log("Trying gofile...")
-        # get server
-        s = requests.get("https://api.gofile.io/servers", timeout=20).json()
-        server = s["data"]["servers"][0]["name"]
-        with open(path, 'rb') as f:
-            r = requests.post(f"https://{server}.gofile.io/contents/uploadfile", files={"file": f}, timeout=90)
-            log(f"gofile: {r.text[:400]}")
-            j = r.json()
-            if j["status"]=="ok":
-                return j["data"]["directLink"]
-    except Exception as e: log(f"gofile fail {e}")
 
     return None
 
@@ -83,7 +59,21 @@ if __name__ == "__main__":
     audio = AudioFileClip("voice.mp3")
     clip = ImageClip("frame.jpg").set_duration(audio.duration + 0.5)
     clip = clip.set_audio(audio)
-    clip.write_videofile("final.mp4", fps=24, codec='libx264', audio_codec='aac')
+    
+    # IMPORTANT FIX: Insta ke liye sahi format
+    clip.write_videofile(
+        "final.mp4", 
+        fps=24, 
+        codec='libx264', 
+        audio_codec='aac',
+        preset='ultrafast',
+        ffmpeg_params=["-pix_fmt", "yuv420p", "-movflags", "+faststart"]
+    )
+
+    size = os.path.getsize("final.mp4")
+    log(f"Video size: {size} bytes")
+    if size < 50000:
+        log("Video too small, failed!"); exit(1)
 
     url = upload_video("final.mp4")
     log(f"FINAL URL: {url}")
@@ -101,7 +91,13 @@ if __name__ == "__main__":
         s = requests.get(f"https://graph.facebook.com/v19.0/{cid}?fields=status_code&access_token={TOKEN}").json()
         log(f"Status {i}: {s}")
         if s.get("status_code")=="FINISHED": break
+        if s.get("status_code")=="ERROR":
+            log("Transcoding failed, URL is not direct video"); exit(1)
 
     p = requests.post(f"https://graph.facebook.com/v19.0/{INSTA_ID}/media_publish", data={"creation_id": cid, "access_token": TOKEN})
     log(f"PUBLISH: {p.text}")
-    log("SUCCESS - Reel Posted!" if "id" in p.text else "Publish failed - check Instagram permissions")
+    if "id" in p.text:
+        log("SUCCESS - Reel Posted!")
+    else:
+        log("Publish failed")
+        exit(1)
