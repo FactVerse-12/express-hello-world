@@ -11,6 +11,19 @@ def log(m): print(m, flush=True)
 TOPIC = "Chuha aur Bandar - Ek sachi dosti ki kahani"
 
 def upload_video(path):
+    headers = {"User-Agent": "Mozilla/5.0"}
+    
+    # 1. 0x0.st - best for GitHub Actions
+    try:
+        log("Uploading to 0x0.st...")
+        with open(path, 'rb') as f:
+            r = requests.post("https://0x0.st", files={"file": f}, headers=headers, timeout=90)
+            log(f"0x0: {r.text}")
+            if "https://0x0.st" in r.text:
+                return r.text.strip()
+    except Exception as e: log(f"0x0 fail {e}")
+
+    # 2. catbox with header
     try:
         log("Uploading to catbox.moe...")
         with open(path, 'rb') as f:
@@ -18,13 +31,25 @@ def upload_video(path):
                 "https://catbox.moe/user/api.php",
                 data={"reqtype": "fileupload"},
                 files={"fileToUpload": f},
+                headers=headers,
                 timeout=90
             )
             log(f"catbox: {r.text}")
-            if "https://" in r.text:
+            if "https://" in r.text and "catbox" in r.text:
                 return r.text.strip()
-    except Exception as e:
-        log(f"catbox fail {e}")
+    except Exception as e: log(f"catbox fail {e}")
+
+    # 3. file.io - direct link
+    try:
+        log("Trying file.io...")
+        with open(path, 'rb') as f:
+            r = requests.post("https://file.io", files={"file": f}, headers=headers, timeout=60)
+            j = r.json()
+            log(f"file.io: {r.text[:200]}")
+            if j.get("success"):
+                return j["link"]
+    except Exception as e: log(f"file.io fail {e}")
+
     return None
 
 if __name__ == "__main__":
