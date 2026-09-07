@@ -1,27 +1,27 @@
-name: StoryToons Auto
+name: auto-post
 on:
-  schedule:
-    - cron: '30 1 * * *'
-    - cron: '30 6 * * *'
-    - cron: '30 10 * * *'
-    - cron: '0 14 * * *'
-    - cron: '30 16 * * *'
   workflow_dispatch:
+  schedule:
+    - cron: '0 4 * * *' # roz subah 9:30 IST auto chalega
+
 jobs:
   post:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
-        with: { python-version: '3.10' }
-      - run: |
-          sudo apt-get install -y ffmpeg
-          pip install -r requirements.txt
-          python main.py
-      - name: Save used topics
+        with:
+          python-version: '3.10'
+      - run: pip install gtts requests
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: python main.py
+        env:
+          INSTA_TOKEN: ${{ secrets.INSTA_TOKEN }}
+          INSTA_ID: ${{ secrets.INSTA_ID }}
+      - name: Save memory for infinite loop
         run: |
-          git config --global user.name "bot"
-          git config --global user.email "bot@bot.com"
+          git config user.name "factory-bot"
+          git config user.email "bot@storytoons.com"
           git add used_topics.json
-          git commit -m "update used ${{ github.run_number }}" || echo "no change"
-          git push
+          git commit -m "memory ${{ github.run_number }}" || true
+          git push || true
