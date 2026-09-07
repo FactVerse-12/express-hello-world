@@ -42,12 +42,6 @@ def make_video(img_path, audio_path):
     audio = AudioFileClip(audio_path)
     clip = ImageClip(img_path).set_duration(audio.duration + 0.5)
     clip = clip.set_audio(audio)
-   def make_video(img_path, audio_path):
-    audio = AudioFileClip(audio_path)
-    clip = ImageClip(img_path).set_duration(audio.duration + 0.5)
-    clip = clip.set_audio(audio)
-    clip.write_videofile("final.mp4", fps=24, codec='libx264', audio_codec='aac')
-    return "final.mp4" 
     clip.write_videofile("final.mp4", fps=24, codec='libx264', audio_codec='aac')
     return "final.mp4"
 
@@ -65,12 +59,7 @@ def upload_video(path):
 
 def create_reel(video_url, caption):
     url = f"https://graph.facebook.com/v19.0/{INSTA_ID}/media"
-    data = {
-        "media_type": "REELS",
-        "video_url": video_url,
-        "caption": caption,
-        "access_token": TOKEN
-    }
+    data = {"media_type": "REELS", "video_url": video_url, "caption": caption, "access_token": TOKEN}
     r = requests.post(url, data=data)
     log(f"CREATE: {r.text}")
     if "error" in r.text:
@@ -104,7 +93,4 @@ if __name__ == "__main__":
         log("Upload fail")
         exit(1)
     ok = create_reel(public, story)
-    if ok:
-        log("SUCCESS")
-    else:
-        log("Publish fail - check permission #10")
+    log("SUCCESS" if ok else "Publish fail - check permission #10")
