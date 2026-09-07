@@ -1,61 +1,37 @@
-const express = require("express");
+const express = require('express');
 const app = express();
-const port = process.env.PORT || 3001;
+const PORT = process.env.PORT || 10000;
 
-app.get("/", (req, res) => res.type('html').send(html));
+const IG_USER_ID = process.env.IG_USER_ID;
+const ACCESS_TOKEN = process.env.ACCESS_TOKEN;
 
-const server = app.listen(port, () => console.log(`Example app listening on port ${port}!`));
+const stories = [
+  {topic:"Horror", caption:"Raat ke 3 baje usne darwaze pe dastak suni... 👻 Full story in comments! #horror #storytoons\nFollow @story.toons.official"},
+  {topic:"Love", caption:"Usne kaha, pyar kabhi khatam nahi hota ❤️ Follow @story.toons.official #lovestory"},
+  {topic:"Motivation", caption:"Haar mat mano, kal tumhara hai! 💪 #motivation #storytoons"},
+  {topic:"Moral", caption:"Ek choti si kahani jo zindagi badal degi ✨ #moralstory"}
+];
 
-server.keepAliveTimeout = 120 * 1000;
-server.headersTimeout = 120 * 1000;
+app.get('/', (req,res) => {
+  res.send(`<h1 style="font-family:sans-serif">StoryToons Bot LIVE 🤖</h1><p>Topic: ${stories[Math.floor(Math.random()*stories.length)].topic}</p><a href="/post-story"><button style="padding:20px;font-size:22px;background:green;color:white;border-radius:10px">CLICK TO POST NOW</button></a>`);
+});
 
-const html = `
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>Hello from Render!</title>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
-    <script>
-      setTimeout(() => {
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 },
-          disableForReducedMotion: true
-        });
-      }, 500);
-    </script>
-    <style>
-      @import url("https://p.typekit.net/p.css?s=1&k=vnd5zic&ht=tk&f=39475.39476.39477.39478.39479.39480.39481.39482&a=18673890&app=typekit&e=css");
-      @font-face {
-        font-family: "neo-sans";
-        src: url("https://use.typekit.net/af/00ac0a/00000000000000003b9b2033/27/l?primer=7cdcb44be4a7db8877ffa5c0007b8dd865b3bbc383831fe2ea177f62257a9191&fvd=n7&v=3") format("woff2"), url("https://use.typekit.net/af/00ac0a/00000000000000003b9b2033/27/d?primer=7cdcb44be4a7db8877ffa5c0007b8dd865b3bbc383831fe2ea177f62257a9191&fvd=n7&v=3") format("woff"), url("https://use.typekit.net/af/00ac0a/00000000000000003b9b2033/27/a?primer=7cdcb44be4a7db8877ffa5c0007b8dd865b3bbc383831fe2ea177f62257a9191&fvd=n7&v=3") format("opentype");
-        font-style: normal;
-        font-weight: 700;
-      }
-      html {
-        font-family: neo-sans;
-        font-weight: 700;
-        font-size: calc(62rem / 16);
-      }
-      body {
-        background: white;
-      }
-      section {
-        border-radius: 1em;
-        padding: 1em;
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        margin-right: -50%;
-        transform: translate(-50%, -50%);
-      }
-    </style>
-  </head>
-  <body>
-    <section>
-      Hello from Render!
-    </section>
-  </body>
-</html>
-`
+app.get('/post-story', async (req,res) => {
+  try {
+    const story = stories[Math.floor(Math.random()*stories.length)];
+    const imageUrl = `https://picsum.photos/1080/1080?random=${Date.now()}`;
+    const createUrl = `https://graph.facebook.com/v20.0/${IG_USER_ID}/media`;
+    const form1 = new URLSearchParams({ image_url: imageUrl, caption: story.caption, access_token: ACCESS_TOKEN });
+    const r1 = await fetch(createUrl, { method: 'POST', body: form1 });
+    const d1 = await r1.json();
+    if(!d1.id) return res.json({error:"Create failed", d1});
+    await new Promise(r=>setTimeout(r, 3000));
+    const pubUrl = `https://graph.facebook.com/v20.0/${IG_USER_ID}/media_publish`;
+    const form2 = new URLSearchParams({ creation_id: d1.id, access_token: ACCESS_TOKEN });
+    const r2 = await fetch(pubUrl, { method: 'POST', body: form2 });
+    const d2 = await r2.json();
+    res.json({ success:true, topic: story.topic, posted: d2 });
+  } catch(e){ res.json({error:e.message}) }
+});
+
+app.listen(PORT, ()=>console.log("Live"));
