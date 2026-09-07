@@ -1,93 +1,34 @@
-import os, random, asyncio, requests, subprocess, time
-import edge_tts
+import os, random, requests, subprocess, json, time
+from gtts import gTTS
 
-VOICE = "hi-IN-SwaraNeural"
-PAGE_NAME = "storytoons_____"
+print("StoryToons Factory Started...")
 
-# Tumhare 4 Modules
-CHARACTERS = {
-    "Horror": "creepy cute cartoon ghost kid, big eyes, pixar style, dark forest background, consistent character",
-    "Love": "cute cartoon couple boy and girl, indian kids Gattu Chinki in love, pixar style, romantic background",
-    "Funny": "cute orange cartoon cat Chintu wearing blue tshirt, funny face, pixar style",
-    "Mystery": "cute baby elephant Dholu detective with hat, pixar style, mysterious background"
-}
-
-STORIES = {
-    "Horror": "Ek raat Chintu ko jungle me roshni dikhi, wahan ek bhooton ka laddoo tha, khate hi uski parchai bolne lagi",
-    "Love": "Gattu ne Chinki ke liye chand se tara todne ka wada kiya, fir usko asli tara jamin par mil gaya",
-    "Funny": "Dholu ne socha chand cheese se bana hai, usko khane ke liye usne lambi seedhi lagayi",
-    "Mystery": "Gaon me sabke jute gayab ho rahe the, Chintu ne dekha raat ko jute khud chal rahe hain"
-}
-
-def make_image(prompt, i):
-    # Best Cartoon Reel Banegi - 1080x1920
-    url = f"https://image.pollinations.ai/prompt/{requests.utils.quote(prompt)}?width=1080&height=1920&nologo=true&seed={random.randint(1,99999)}"
-    r = requests.get(url, timeout=60)
-    open(f"s{i}.jpg",'wb').write(r.content)
-    return f"s{i}.jpg"
-
-async def make_voice(text):
-    await edge_tts.Communicate(text, VOICE, rate="-5%", volume="+10%").save("voice.mp3")
-
-def make_video_with_music(imgs):
-    # Background Music Download (royalty free)
-    try:
-        # Free music
-        music_url = "https://cdn.pixabay.com/download/audio/2022/03/10/audio_c8c8a650f6.mp3"
-        open("bg.mp3","wb").write(requests.get(music_url).content)
-    except: pass
-
-    per = 6.0 # har image 6 sec
-    with open("list.txt","w") as f:
-        for im in imgs:
-            f.write(f"file '{im}'\nduration {per}\n")
-        f.write(f"file '{imgs[-1]}'\n")
-
-    # 1. Image + Voice = base video
-    os.system('ffmpeg -y -f concat -safe 0 -i list.txt -vf "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920" -r 30 base.mp4')
-    # 2. Voice + Background Music Mix
-    os.system('ffmpeg -y -i base.mp4 -i voice.mp3 -i bg.mp3 -filter_complex "[1:a][2:a]amix=inputs=2:duration=shortest:dropout_transition=0:weights=1 0.3[a]" -map 0:v -map "[a]" -c:v libx264 -shortest final_reel.mp4')
-
-def post_to_instagram():
-    token = os.environ.get('INSTA_TOKEN')
-    ig_id = os.environ.get('INSTA_ID')
-    if not token:
-        print("TOKEN nahi mila, sirf video banayi hai, post nahi hui")
-        return
-
-    # Catbox pe upload karke public link lo
-    with open("final_reel.mp4","rb") as f:
-        r = requests.post("https://catbox.moe/user/api.php", data={"reqtype":"fileupload"}, files={"fileToUpload": f})
-        public_url = r.text.strip()
-    print("Video URL:", public_url)
-
-    caption = f"Aaj ki Kahani - Follow {PAGE_NAME} ❤️ #storytoons #hindikahani #cartoonstory"
-    # 1. Container banao
-    res = requests.post(f"https://graph.facebook.com/v20.0/{ig_id}/media", data={"media_type":"REELS","video_url":public_url,"caption":caption,"access_token":token}).json()
-    print(res)
-    cid = res.get('id')
-    # 2. Wait
-    for _ in range(12):
-        time.sleep(5)
-        s = requests.get(f"https://graph.facebook.com/v20.0/{cid}?fields=status_code&access_token={token}").json()
-        if s.get('status_code')=='FINISHED': break
-    # 3. Publish
-    pub = requests.post(f"https://graph.facebook.com/v20.0/{ig_id}/media_publish", data={"creation_id":cid,"access_token":token}).json()
-    print("PUBLISHED:", pub)
-
-async def main():
-    topic = random.choice(list(STORIES.keys())) # Horror, Love, Funny, Mystery
-    story = STORIES[topic]
-    char_prompt = CHARACTERS[topic]
-
-    title = f"{topic} Kahani"
-    voice_text = f"Namaste dosto, {PAGE_NAME} me swagat hai. Aaj ki {topic} kahani. {story}. Aage kya hua janne ke liye follow karo."
-
-    prompts = [f"{char_prompt}, {story} scene {i+1}, 4k" for i in range(5)]
-    imgs = [make_image(p,i) for i,p in enumerate(prompts)]
-    await make_voice(voice_text)
-    make_video_with_music(imgs)
-    post_to_instagram()
-
-if __name__ == "__main__":
-    asyncio.run(main())
+# ===== 50 VIRAL TOPICS - HAR VIDEO ALAG =====
+ALL_TOPICS = [
+  {"t":"Horror - Bhootiya Haveli", "p":"haunted mansion night ghost girl pixar 3d", "m":"Lalach buri bala hai", "s":"Ek ladka purani haveli me khazana dhoondhne gaya, wahan usse ek roti hui ladki mili. Ladki ne kaha ye haveli shraapit hai. Ladke ne lalach nahi kiya aur wapas aa gaya."},
+  {"t":"Love - Maa Ka Pyaar", "p":"indian mother child emotional love pixar", "m":"Maa se badhkar koi nahi", "s":"Chota Raju bimar tha, maa raat bhar jaag kar uski seva karti rahi. Subah Raju theek ho gaya."},
+  {"t":"Funny - Alsi Gadha", "p":"lazy donkey funny sleeping comedy pixar", "m":"Mehnat ka fal meetha hota hai", "s":"Ek gadha din bhar sota tha, baaki janwar kaam karte the. Jab mela aaya toh sabke paas paise the, gadhe ke paas kuch nahi."},
+  {"t":"Betrayal - Dhokebaaz Dost", "p":"two best friends betrayal sad cartoon", "m":"Sache dost ki kadar karo", "s":"Rohan ne apne dost ka secret dusron ko bata diya, dost ne baat karna band kar diya."},
+  {"t":"Greed - Jadui Ped", "p":"magical tree gold coins greed cartoon", "m":"Jyada lalach sab khatam kar deta hai", "s":"Ek kisan ko jadui ped mila jo roz ek sone ka sikka deta tha, usne pura ped kaat diya."},
+  {"t":"Horror - Raat Ka Auto", "p":"auto rickshaw midnight horror road cartoon", "m":"Anjaan logon se bacho", "s":"Raat 2 baje ek ladki ko khali auto mila, driver ka chehra nahi tha."},
+  {"t":"Friendship - Sher Aur Chuha", "p":"lion and mouse friendship jungle cartoon", "m":"Chota dost bhi kaam aata hai", "s":"Sher ne chuhe ko chhod diya, baad me chuhe ne jaal kaat kar sher ko bachaya."},
+  {"t":"Funny - Bandar Ka School", "p":"monkeys in classroom funny cartoon", "m":"Nakal karna buri baat", "s":"Bandar ne topper ki nakal ki, teacher ne pakad liya."},
+  {"t":"Love - Behen Ka Pyar", "p":"brother sister rakhi emotional cartoon", "m":"Rishte anmol hote hain", "s":"Bhai videsh chala gaya, behen ne har saal rakhi bheji."},
+  {"t":"Horror - Khali School", "p":"abandoned school ghost child horror cartoon", "m":"Jhooth bolne se dar lagta hai", "s":"Bacche ne jhooth bola ki school me bhoot hai, raat ko sach me bhoot aa gaya."},
+  {"t":"Greed - Sone Ka Anda", "p":"hen golden egg greed cartoon", "m":"Sabr ka fal meetha hota hai", "s":"Ek murgi sone ka anda deti thi, malik ne lalach me use kaat diya."},
+  {"t":"Funny - Hathi Ka Dance", "p":"elephant dancing funny cartoon", "m":"Hasna sehat ke liye accha hai", "s":"Hathi ne dance kiya, sab hasne lage, jungle me khushi aa gayi."},
+  {"t":"Moral - Jhootha Kauwa", "p":"crow lying story cartoon", "m":"Jhooth ki umar choti hoti hai", "s":"Kauwe ne jhooth bola ki ped pe bhoot hai, koi uski baat nahi maanta tha."},
+  {"t":"Love - Papa Ka Sapna", "p":"father son dream emotional cartoon", "m":"Mehnat se sapne pure hote hain", "s":"Papa ne bete ke liye cycle ka sapna dekha, din raat mehnat ki."},
+  {"t":"Horror - Kuan Ka Paani", "p":"well water horror ghost cartoon night", "m":"Bina soche kaam mat karo", "s":"Gaon ke kuan se raat ko awaze aati thi, ek ladke ne jhaank kar dekha."},
+  {"t":"Friendship - Tota Maina", "p":"parrot friendship cartoon jungle", "m":"Dosti me madad karni chahiye", "s":"Tota bimar tha, Maina ne uske liye dawa laayi."},
+  {"t":"Greed - Do Billi", "p":"two cats fighting fish cartoon", "m":"Ladai se nuksaan hota hai", "s":"Do billi machli ke liye lad rahi thi, bandar ne machli kha li."},
+  {"t":"Funny - Sher Ka Haircut", "p":"lion barber shop funny cartoon", "m":"Ghamand accha nahi", "s":"Sher ne naya haircut karwaya, sab us par hasne lage."},
+  {"t":"Horror - Jungle Ki Chudail", "p":"witch jungle horror cartoon night", "m":"Himmat se dar bhagta hai", "s":"Chudail jungle me rehti thi, ek bacche ne himmat dikhayi."},
+  {"t":"Moral - Mehnati Kisan", "p":"farmer working field cartoon", "m":"Mehnat kabhi bekar nahi jaati", "s":"Kisan ne sukhe khet me bhi mehnat ki, baarish hui aur fasal ug gayi."},
+  {"t":"Love - Dost Ki Shaadi", "p":"friends wedding emotional cartoon", "m":"Dost hi parivar hote hain", "s":"Dost ki shaadi me sabne madad ki."},
+  {"t":"Funny - Gadhe Ki Topi", "p":"donkey wearing hat funny cartoon", "m":"Dusron par haso mat", "s":"Gadhe ne topi pehni, sab hase, fir gadha raja ban gaya."},
+  {"t":"Horror - Lift Ka Bhoot", "p":"elevator ghost horror cartoon", "m":"Akele lift me mat jao raat ko", "s":"Building ki lift raat ko khud chalti thi."},
+  {"t":"Moral - Pipal Ka Ped", "p":"big banyan tree village cartoon", "m":"Ped lagana punya hai", "s":"Buzurg ne ped lagaya, gaon ko chhaya mili."},
+  {"t":"Greed - Chor Ka Anjaam", "p":"thief stealing cartoon village", "m":"Chori kabhi chupti nahi", "s":"Chor ne chori ki, CCTV me pakda gaya."},
+  {"t":"Friendship - Machli Aur Mendhak", "p":"fish frog friendship cartoon pond", "m":"Alag hoke bhi dost bana ja sakta hai", "s":"Machli aur mendhak dost ban gaye."},
+  {"t":"Horror - Purana Radio
