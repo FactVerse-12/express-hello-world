@@ -1,6 +1,6 @@
 import os, random, requests, subprocess, json, time
 from gtts import gTTS
-print("=== INFINITE FACTORY ===")
+print("=== INFINITE FACTORY FIXED ===")
 GENRES=["Horror","Funny","Love","Moral","Greed","Friendship","Betrayal","Mystery"]
 CHARACTERS=["Sher","Chuha","Bandar","Billi","Hathi","Kauwa","Gadha","Tota","Bhoot","Chudail","Raja","Kisan","Baccha","Dadi","Jadugar","Pari","Rakshas","Maina","Kutta"]
 PLACES=["Haveli","Jungle","School","Gaon","Sheher","Kuan","Peepal","Hospital","Lift","Chhat","Nadi","Pahad","Khet","Bazaar","Samundar","Gufa"]
@@ -45,16 +45,22 @@ ig_id=os.getenv("INSTA_ID")
 if not token or not ig_id:
     print("No token")
     exit(0)
+# FIXED UPLOADER - tmpfiles.org
 with open('final.mp4','rb') as f:
-    r=requests.post("https://catbox.moe/user/api.php", data={"reqtype":"fileupload"}, files={"fileToUpload": f}, timeout=60)
-    vurl=r.text.strip()
+    r=requests.post("https://tmpfiles.org/api/v1/upload", files={"file": f}, timeout=60)
+    print(f"UPLOAD RESP: {r.text[:200]}")
+    try:
+        vurl=r.json()['data']['url'].replace("tmpfiles.org/","tmpfiles.org/dl/")
+    except:
+        vurl=r.json().get('data',{}).get('url','')
+        vurl=vurl.replace("tmpfiles.org/","tmpfiles.org/dl/")
 print(f"URL {vurl}")
 b="https://graph.facebook.com/v19.0"
-cap=f"{sel['t']}\n\n{sel['s']}\n\nSeekh: {sel['m']}\n\n#hindikahani #moralstory"
+cap=f"{sel['t']}\n\n{sel['s']}\n\nSeekh: {sel['m']}\n\n#hindikahani #moralstory #storytoons"
 r=requests.post(f"{b}/{ig_id}/media", data={"video_url":vurl,"caption":cap,"media_type":"REELS","access_token":token})
-print(r.text)
+print(f"CREATE: {r.text}")
 jid=r.json().get('id')
 if not jid: exit(0)
-time.sleep(30)
+time.sleep(35)
 pub=requests.post(f"{b}/{ig_id}/media_publish", data={"creation_id":jid,"access_token":token})
-print(pub.text)
+print(f"PUBLISHED: {pub.text}")
