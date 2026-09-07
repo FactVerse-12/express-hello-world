@@ -7,6 +7,8 @@ on:
 jobs:
   post:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -21,7 +23,8 @@ jobs:
       - name: Save memory for infinite loop
         run: |
           git config user.name "factory-bot"
-          git config user.email "bot@story.com"
-          git add used_topics.json
-          git commit -m "memory ${{ github.run_number }}" || true
-          git push || true
+          git config user.email "bot@factory.com"
+          touch used_topics.json
+          git add -A
+          git commit -m "update memory" || echo "nothing to commit"
+          git push || echo "push failed"
